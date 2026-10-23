@@ -1,0 +1,60 @@
+{
+  "kind": "extraction",
+  "id": "WB-GZT-1182",
+  "inputHash": "4259dd48dbc0a40ad713b603d93c38a215a8f1bf0b1efb25a60e8536ba0f9d1a",
+  "model": "claude-sonnet-5",
+  "recordedAt": "2026-10-23T23:51:45.501Z",
+  "note": "Recorded live response from the Claude API.",
+  "output": {
+    "documentType": "weighbridge-ticket",
+    "fields": [
+      {
+        "name": "documentNumber",
+        "value": "WB-GZT-1182",
+        "quote": "WB-GZT-1182",
+        "page": 1
+      },
+      {
+        "name": "date",
+        "value": "2026-09-18",
+        "quote": "18 September 2026 14:05",
+        "page": 1
+      },
+      {
+        "name": "invoiceReference",
+        "value": "INV-ADN-2026-0881",
+        "quote": "Ref. INV-ADN-2026-0881",
+        "page": 1
+      },
+      {
+        "name": "grossWeightKg",
+        "value": "45860",
+        "quote": "45,860 kg",
+        "page": 1
+      },
+      {
+        "name": "netWeightKg",
+        "value": "30000",
+        "quote": "30,000 kg",
+        "page": 1
+      }
+    ],
+    "concerns": []
+  },
+  "usage": {
+    "input_tokens": 3027,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 230,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+  }
+}

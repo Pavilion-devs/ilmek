@@ -1,0 +1,72 @@
+{
+  "kind": "extraction",
+  "id": "INV-ADN-2026-0881",
+  "inputHash": "abe1e4957a486f74484fb1f5326ae692ac505c834cb5b4d6ebbbd2eb8edba4e0",
+  "model": "claude-sonnet-5",
+  "recordedAt": "2026-10-23T23:51:33.867Z",
+  "note": "Recorded live response from the Claude API.",
+  "output": {
+    "documentType": "invoice",
+    "fields": [
+      {
+        "name": "documentNumber",
+        "value": "INV-ADN-2026-0881",
+        "quote": "INV-ADN-2026-0881",
+        "page": 1
+      },
+      {
+        "name": "date",
+        "value": "2026-09-18",
+        "quote": "18 September 2026",
+        "page": 1
+      },
+      {
+        "name": "seller",
+        "value": "Recycler · Adana (demo)",
+        "quote": "Recycler · Adana (demo)",
+        "page": 1
+      },
+      {
+        "name": "buyer",
+        "value": "Spinner · Gaziantep (demo)",
+        "quote": "Spinner · Gaziantep (demo)",
+        "page": 1
+      },
+      {
+        "name": "product",
+        "value": "rPET chip, bottle grade, 24 big bags",
+        "quote": "rPET chip, bottle grade, 24 big bags",
+        "page": 1
+      },
+      {
+        "name": "netWeightKg",
+        "value": "30000",
+        "quote": "30,000 kg",
+        "page": 1
+      },
+      {
+        "name": "certificateReference",
+        "value": "TC-2026-ADN-0042",
+        "quote": "Recycled content TC-2026-ADN-0042",
+        "page": 1
+      }
+    ],
+    "concerns": []
+  },
+  "usage": {
+    "input_tokens": 2985,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 345,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+  }
+}

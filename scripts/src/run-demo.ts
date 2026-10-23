@@ -45,6 +45,7 @@ import {
   type IntegrityReport,
   type StepRecord,
 } from "@ilmek/core";
+import { loadDotEnv, processClaim } from "@ilmek/ai";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const artifact = JSON.parse(readFileSync(resolve(ROOT, "contracts/out/FiberLedger.sol/FiberLedger.json"), "utf8"));
@@ -83,6 +84,7 @@ async function startAnvil(): Promise<ChildProcess> {
 // ------------------------------------------------------------------ main
 
 async function main() {
+  loadDotEnv(resolve(ROOT, ".env"));
   const rpc = process.env.RPC_URL;
   const anvil = rpc ? undefined : await startAnvil();
   const url = rpc ?? "http://127.0.0.1:8545";
@@ -282,8 +284,19 @@ async function main() {
     const g = await read<LotView>("getLot", [garmentAtBrand]);
     const yarnCmp = compareWithVirginFiber(intensityKgPerKg(yarnLot.embeddedCo2eG, yarnLot.totalG));
     const coalCmp = compareWithVirginFiber(intensityKgPerKg(coalLot.embeddedCo2eG, coalLot.totalG));
-    const share = Number(g.recycledG) / Number(g.totalG);
-    const claim = `Shell fabric: ${Math.floor(share * 100)}% recycled polyester, verified. Fiber: ${yarnCmp.actualKgPerKg.toFixed(1)} kg CO₂e per kg (virgin polyester ≈ ${yarnCmp.virginKgPerKg.toFixed(1)}).`;
+    // The brand's draft goes through the claim checker (AI rewrite + number lock, or the safe template).
+    const facts = {
+      scope: "Shell fabric",
+      recycledPercent: Math.floor((Number(g.recycledG) * 100) / Number(g.totalG)),
+      recycledMaterial: "recycled polyester",
+      fiberCo2eKgPerKg: Math.round(yarnCmp.actualKgPerKg * 10) / 10,
+      virginFiberCo2eKgPerKg: Math.round(yarnCmp.virginKgPerKg * 10) / 10,
+      fiberSavingPercent: Math.round(yarnCmp.savingShare * 100),
+      carbonLabel: yarnCmp.label,
+    };
+    const checkedClaim = await processClaim(demo.BRAND_DRAFT_CLAIM, facts);
+    const claim = checkedClaim.final.text;
+    log(`claim (${checkedClaim.final.source}, AI ${checkedClaim.provenance.source}): ${claim}`);
     await send("brand", "mintPassport", [garmentAtBrand, claimHash(claim)], "mint passport");
     const passport = await read<{ recycledBps: number; co2eGPerKg: number }>("getPassport", [garmentAtBrand]);
     log(`passport minted for lot ${garmentAtBrand}: ${passport.recycledBps / 100}% recycled, ${passport.co2eGPerKg / 1000} kg CO₂e per kg of garment`);
@@ -306,6 +319,7 @@ async function main() {
         claim,
         claimHash: claimHash(claim),
         brandDraftClaim: demo.BRAND_DRAFT_CLAIM,
+        claimCheck: checkedClaim,
       },
       fiberComparison: { honestGrid: yarnCmp, coalPowered: coalCmp, garmentRecycledKg: gToKg(g.recycledG) },
       integrityReports: reports,

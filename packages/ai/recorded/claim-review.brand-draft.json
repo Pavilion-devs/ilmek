@@ -1,0 +1,44 @@
+{
+  "kind": "claim-review",
+  "id": "brand-draft",
+  "inputHash": "d41d2c886646beaaa39f65bf9be7f37199b0b995ed6a210bbfbf6c7de2d2c887",
+  "model": "claude-sonnet-5",
+  "recordedAt": "2026-10-23T23:51:50.102Z",
+  "note": "Recorded live response from the Claude API.",
+  "output": {
+    "phrases": [
+      {
+        "text": "Eco-friendly jacket",
+        "verdict": "banned-generic",
+        "reason": "This is a vague green claim that isn't allowed unless you can prove overall excellent environmental performance, which you haven't."
+      },
+      {
+        "text": "made from 100% recycled materials",
+        "verdict": "unsupported",
+        "reason": "The passport only shows 57% recycled polyester in the shell fabric, not 100% recycled materials for the whole jacket."
+      },
+      {
+        "text": "Kind to the planet",
+        "verdict": "banned-generic",
+        "reason": "This is a generic environmental claim with no specific proof behind it, so it's not allowed."
+      }
+    ],
+    "rewrite": "Shell fabric made with 57% recycled polyester (verified). This fiber has a footprint of 2.7 kg CO2e per kg, a 38% saving versus virgin polyester fiber (4.4 kg CO2e per kg)."
+  },
+  "usage": {
+    "input_tokens": 1092,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 295,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+  }
+}

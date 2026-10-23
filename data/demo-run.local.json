@@ -2,7 +2,7 @@
   "chainId": 31337,
   "ledger": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
   "deployTx": "0xf0a1232af69fea677066ef6718e146759de8537403607e0e735e3f53aef4b3e9",
-  "ranAt": "2026-10-23T23:40:52.337Z",
+  "ranAt": "2026-10-23T23:52:40.738Z",
   "accounts": {
     "admin": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "certifier": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
@@ -73,9 +73,55 @@
     "lotId": "15",
     "recycledBps": 5743,
     "co2eKgPerKgGarment": 7.266,
-    "claim": "Shell fabric: 57% recycled polyester, verified. Fiber: 2.7 kg CO₂e per kg (virgin polyester ≈ 4.4).",
-    "claimHash": "0x464c90f147e346975af5ce22b01131d8c8a69d7bf4298f65bf805a156c70fe87",
-    "brandDraftClaim": "Eco-friendly jacket made from 100% recycled materials. Kind to the planet."
+    "claim": "Shell fabric made with 57% recycled polyester (verified). This fiber has a footprint of 2.7 kg CO2e per kg, a 38% saving versus virgin polyester fiber (4.4 kg CO2e per kg).",
+    "claimHash": "0xcc0b9ec699beca1d59a698279247073f7765844d92a963fe3458361afd3e2ba2",
+    "brandDraftClaim": "Eco-friendly jacket made from 100% recycled materials. Kind to the planet.",
+    "claimCheck": {
+      "draft": "Eco-friendly jacket made from 100% recycled materials. Kind to the planet.",
+      "facts": {
+        "scope": "Shell fabric",
+        "recycledPercent": 57,
+        "recycledMaterial": "recycled polyester",
+        "fiberCo2eKgPerKg": 2.7,
+        "virginFiberCo2eKgPerKg": 4.4,
+        "fiberSavingPercent": 38,
+        "carbonLabel": "low-carbon"
+      },
+      "final": {
+        "text": "Shell fabric made with 57% recycled polyester (verified). This fiber has a footprint of 2.7 kg CO2e per kg, a 38% saving versus virgin polyester fiber (4.4 kg CO2e per kg).",
+        "source": "ai-rewrite",
+        "lock": {
+          "ok": true,
+          "problems": []
+        },
+        "review": {
+          "phrases": [
+            {
+              "text": "Eco-friendly jacket",
+              "verdict": "banned-generic",
+              "reason": "This is a vague green claim that isn't allowed unless you can prove overall excellent environmental performance, which you haven't."
+            },
+            {
+              "text": "made from 100% recycled materials",
+              "verdict": "unsupported",
+              "reason": "The passport only shows 57% recycled polyester in the shell fabric, not 100% recycled materials for the whole jacket."
+            },
+            {
+              "text": "Kind to the planet",
+              "verdict": "banned-generic",
+              "reason": "This is a generic environmental claim with no specific proof behind it, so it's not allowed."
+            }
+          ],
+          "rewrite": "Shell fabric made with 57% recycled polyester (verified). This fiber has a footprint of 2.7 kg CO2e per kg, a 38% saving versus virgin polyester fiber (4.4 kg CO2e per kg)."
+        }
+      },
+      "provenance": {
+        "source": "recorded",
+        "model": "claude-sonnet-5",
+        "recordedAt": "2026-10-23T23:51:50.102Z",
+        "inputHash": "d41d2c886646beaaa39f65bf9be7f37199b0b995ed6a210bbfbf6c7de2d2c887"
+      }
+    }
   },
   "fiberComparison": {
     "honestGrid": {
@@ -675,7 +721,7 @@
     },
     {
       "label": "mint passport",
-      "hash": "0x734a799fb6f8e82eb3226c6efb137e86b341ea4337ff2f3a44fc7610cee47b03",
+      "hash": "0x7fb8bf681aa609e5e98a6000963de03c7881ae2364335a088bc7cef0806694ab",
       "status": "success"
     }
   ]

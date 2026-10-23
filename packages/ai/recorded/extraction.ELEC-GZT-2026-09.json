@@ -1,0 +1,54 @@
+{
+  "kind": "extraction",
+  "id": "ELEC-GZT-2026-09",
+  "inputHash": "32bbb4cad1ea97d65c62bc4f7ad1d1665ed0703c26435e0e560348fac9aea093",
+  "model": "claude-sonnet-5",
+  "recordedAt": "2026-10-23T23:51:30.294Z",
+  "note": "Recorded live response from the Claude API.",
+  "output": {
+    "documentType": "electricity-bill",
+    "fields": [
+      {
+        "name": "issuer",
+        "value": "Spinner",
+        "quote": "Spinner · Gaziantep (demo)",
+        "page": 1
+      },
+      {
+        "name": "meterNumber",
+        "value": "MTR-GZT-77210",
+        "quote": "MTR-GZT-77210",
+        "page": 1
+      },
+      {
+        "name": "date",
+        "value": "2026-09-30",
+        "quote": "1 September 2026 to 30 September 2026",
+        "page": 1
+      },
+      {
+        "name": "electricityKwh",
+        "value": "240000",
+        "quote": "240,000 kWh",
+        "page": 1
+      }
+    ],
+    "concerns": []
+  },
+  "usage": {
+    "input_tokens": 2975,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 189,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+  }
+}

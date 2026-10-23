@@ -1,0 +1,96 @@
+{
+  "kind": "extraction",
+  "id": "TC-2026-ADN-0042",
+  "inputHash": "f7b0267ac2dd9a9126d2f2f2d6d04b6a21193bbe38c4d6350f5d6616c7218ab3",
+  "model": "claude-sonnet-5",
+  "recordedAt": "2026-10-23T23:51:38.872Z",
+  "note": "Recorded live response from the Claude API.",
+  "output": {
+    "documentType": "transaction-certificate",
+    "fields": [
+      {
+        "name": "documentNumber",
+        "value": "TC-2026-ADN-0042",
+        "quote": "TC-2026-ADN-0042",
+        "page": 1
+      },
+      {
+        "name": "issuer",
+        "value": "Demo Certification Body Ltd.",
+        "quote": "Demo Certification Body Ltd.",
+        "page": 1
+      },
+      {
+        "name": "date",
+        "value": "2026-09-18",
+        "quote": "18 September 2026",
+        "page": 1
+      },
+      {
+        "name": "seller",
+        "value": "Recycler · Adana (demo), Hacı Sabancı OSB, Adana, Türkiye",
+        "quote": "Recycler · Adana (demo), Hacı Sabancı OSB, Adana, Türkiye",
+        "page": 1
+      },
+      {
+        "name": "buyer",
+        "value": "Spinner · Gaziantep (demo), 4. OSB, Gaziantep, Türkiye",
+        "quote": "Spinner · Gaziantep (demo), 4. OSB, Gaziantep, Türkiye",
+        "page": 1
+      },
+      {
+        "name": "product",
+        "value": "Recycled PET chip, bottle grade, post-consumer",
+        "quote": "Recycled PET chip, bottle grade, post-consumer",
+        "page": 1
+      },
+      {
+        "name": "invoiceReference",
+        "value": "INV-ADN-2026-0881",
+        "quote": "INV-ADN-2026-0881",
+        "page": 1
+      },
+      {
+        "name": "grossWeightKg",
+        "value": "30240",
+        "quote": "30,240 kg",
+        "page": 1
+      },
+      {
+        "name": "netWeightKg",
+        "value": "30000",
+        "quote": "30,000 kg",
+        "page": 1
+      },
+      {
+        "name": "recycledContentPercent",
+        "value": "100",
+        "quote": "100% post-consumer recycled PET",
+        "page": 1
+      },
+      {
+        "name": "recycledWeightKg",
+        "value": "30000",
+        "quote": "30,000 kg",
+        "page": 1
+      }
+    ],
+    "concerns": []
+  },
+  "usage": {
+    "input_tokens": 3138,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 588,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+  }
+}
