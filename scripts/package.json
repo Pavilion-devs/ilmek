@@ -1,0 +1,19 @@
+{
+  "name": "@ilmek/scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo:local": "cd ../contracts && forge build -q && cd ../scripts && tsx src/run-demo.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ilmek/core": "workspace:*",
+    "viem": "2.21.54"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "tsx": "4.19.2",
+    "typescript": "5.6.3"
+  }
+}
