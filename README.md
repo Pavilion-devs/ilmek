@@ -10,15 +10,28 @@ IEEE ClimateChain Global Hackathon 2026 · Track: Sustainable Supply Chains (als
 
 | | |
 |---|---|
-| **Site** | https://pavilion-devs.github.io/ilmek/ |
-| **Passport (what a shopper scans)** | https://pavilion-devs.github.io/ilmek/#/passport/15 |
-| **Public verifier** | https://pavilion-devs.github.io/ilmek/#/verify/15 (choose "Live node" to read Base Sepolia directly) |
+| **Site** | https://ilmek-delta.vercel.app (mirror: https://pavilion-devs.github.io/ilmek/) |
+| **Passport (what a shopper scans)** | https://ilmek-delta.vercel.app/#/passport/15 |
+| **Public verifier** | https://ilmek-delta.vercel.app/#/verify/15 (choose "Live node" to read Base Sepolia directly) |
 | **Contract** | [`0x90db5fde6310022c5f478bbb84e264455e895b1d`](https://sepolia.basescan.org/address/0x90db5fde6310022c5f478bbb84e264455e895b1d) on Base Sepolia · source [verified on Sourcify](https://repo.sourcify.dev/84532/0x90db5fde6310022c5f478bbb84e264455e895b1d) (exact match) |
 | **Over-claim refused** | [`RecycledExceedsInputs`](https://sepolia.basescan.org/tx/0x7adced447492daa64267023072f7f380d48287c6f9d12dfccf083eed6b9c3024): 50 t "recycled" yarn from 30 t recycled chips, reverted even with a certifier signature |
 | **Certificate reuse refused** | [`CertificateAlreadyUsed`](https://sepolia.basescan.org/tx/0xca2555d0cf6f4c3d50fc33ce96567298c39981fa40ae3234fd50d4862bb77022) |
 | **Passport minted** | [lot 15](https://sepolia.basescan.org/tx/0xd891408242c126776b05130eb15ab6388bcc45c34a5ca2aa612ee2adf5e7ee0f): 57.43% recycled |
 
 The certifier's ML-DSA-44 key on this deployment comes from a private random seed (not the public demo seed). Every party is a separate testnet account.
+
+## Architecture
+
+[`docs/architecture/ilmek-architecture.excalidraw`](docs/architecture/ilmek-architecture.excalidraw): open it at [excalidraw.com](https://excalidraw.com) (menu → Open). Regenerate with `python3 docs/architecture/make_diagram.py`.
+
+```
+documents + step data ─► Document AI (Claude) ─► quote check ─► integrity engine (8 checks) ─► certifier signs (EIP-712 + ML-DSA-44)
+                                                                                                  │
+                                         FiberLedger.sol on Base Sepolia ◄────────────────────────┘
+                                         registerInput · transform (mass balance) · ship (certificate once) · mintPassport
+                                                                                                  │
+                         dashboard ◄──── accept · refuse · freeze ────► passport (QR) ────► public verifier (browser)
+```
 
 ## What works now
 
