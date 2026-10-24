@@ -1,5 +1,4 @@
-import type { Extraction, FieldName } from "./extract";
-import { NUMERIC_FIELDS } from "./extract";
+import { NUMERIC_FIELDS, type Extraction, type FieldName } from "./schemas";
 
 /**
  * Deterministic checks on what the AI extracted. The AI proposes; these checks decide whether a

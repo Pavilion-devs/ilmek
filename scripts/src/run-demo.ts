@@ -16,6 +16,7 @@ import {
   ContractFunctionRevertedError,
   createPublicClient,
   createWalletClient,
+  hexToBytes,
   http,
   keccak256,
   toBytes,
@@ -34,18 +35,22 @@ import {
   compareWithVirginFiber,
   contractYieldTable,
   demo,
+  demoPqKeys,
   gToKg,
   intensityKgPerKg,
   isoToUnix,
   kgToG,
   processCo2eG,
+  pqKeygen,
+  pqPubKeyHash,
+  pqSignRoot,
   Role,
   Stage,
   VIRGIN_PET_CHIP_G_PER_KG,
   type IntegrityReport,
   type StepRecord,
 } from "@ilmek/core";
-import { loadDotEnv, processClaim } from "@ilmek/ai";
+import { crossCheckShipment, loadDotEnv, processClaim, processDocument } from "@ilmek/ai";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const artifact = JSON.parse(readFileSync(resolve(ROOT, "contracts/out/FiberLedger.sol/FiberLedger.json"), "utf8"));
@@ -86,6 +91,7 @@ async function startAnvil(): Promise<ChildProcess> {
 async function main() {
   loadDotEnv(resolve(ROOT, ".env"));
   const rpc = process.env.RPC_URL;
+  const keep = process.argv.includes("--keep");
   const anvil = rpc ? undefined : await startAnvil();
   const url = rpc ?? "http://127.0.0.1:8545";
   const pub = createPublicClient({ transport: http(url) });
@@ -100,6 +106,7 @@ async function main() {
     // -- deploy
     const deployHash = await wallet("admin").deployContract({ abi, bytecode, account: acct.admin, chain });
     const deployRcpt = await pub.waitForTransactionReceipt({ hash: deployHash });
+    const deployBlock = deployRcpt.blockNumber;
     const ledger = deployRcpt.contractAddress as Address;
     log(`FiberLedger deployed at ${ledger} (chain ${chainId})`);
 
@@ -138,7 +145,9 @@ async function main() {
     };
 
     // -- configure
-    await send("admin", "setCertifier", [acct.certifier.address, true, keccak256(toBytes("ml-dsa-44 key: added in tier 3"))], "add certifier");
+    // Post-quantum key of the certifier. Demo keys are derivable by anyone; set PQ_SEED (32-byte hex) for real use.
+    const pq = process.env.PQ_SEED ? pqKeygen(hexToBytes(process.env.PQ_SEED as Hex)) : demoPqKeys();
+    await send("admin", "setCertifier", [acct.certifier.address, true, pqPubKeyHash(pq.publicKey)], "add certifier");
     const parties: [Name, keyof typeof demo.PLANTS, Role][] = [
       ["recycler", "recycler", Role.Recycler],
       ["spinner", "spinner", Role.Spinner],
@@ -175,7 +184,9 @@ async function main() {
 
     const used = new Set<string>();
     const reports: Record<string, IntegrityReport> = {};
-    const evidence: Record<string, { root: Hex; items: Record<string, unknown>[] }> = {};
+    const evidence: Record<string, { root: Hex; items: Record<string, unknown>[]; pqSig: Hex }> = {};
+    /** lot id -> key in `evidence` for lots that have their own bundle (registered inputs and steps) */
+    const evidenceOfLot: Record<string, string> = {};
 
     const buildStep = (s: StepRecord, inputLotIds: bigint[], gridGPerKwh?: number) => {
       const plant = Object.values(demo.PLANTS).find((p) => p.id === s.plantId)!;
@@ -187,7 +198,7 @@ async function main() {
         { kind: "emission-factors", gridGPerKwh: gridGPerKwh ?? 442, naturalGasGPerMJ: 56.1 },
       ];
       const tree = buildTree(items as Record<string, unknown>[]);
-      evidence[s.id] = { root: tree.root, items: items as Record<string, unknown>[] };
+      evidence[s.id] = { root: tree.root, items: items as Record<string, unknown>[], pqSig: pqSignRoot(tree.root, pq.secretKey) };
       const req = {
         inputLotIds,
         consumeG: s.inputs.map((i) => kgToG(i.kg)),
@@ -218,7 +229,9 @@ async function main() {
       const sig = await approve(owner, req);
       await send(owner, "transform", [req, sig], s.id);
       used.add(s.certificateNo);
-      return lastLot();
+      const id = await lastLot();
+      evidenceOfLot[id.toString()] = s.id;
+      return id;
     };
 
     const ship = async (owner: Name, lot: bigint, kg: number, to: Name, cert: string) => {
@@ -231,9 +244,12 @@ async function main() {
     const reg = async (b: typeof demo.BALE_INPUT) => {
       const items = [{ kind: "transaction-certificate", no: b.certificateNo, kg: b.kg, producedAt: b.producedAt }];
       const root = buildTree(items).root;
+      evidence[b.certificateNo] = { root, items, pqSig: pqSignRoot(root, pq.secretKey) };
       await send("certifier", "registerInput", [acct.recycler.address, kgToG(b.kg), BigInt(b.embeddedCo2eG), isoToUnix(b.producedAt), certHash(b.certificateNo), root], `register ${b.certificateNo}`);
       used.add(b.certificateNo);
-      return lastLot();
+      const id = await lastLot();
+      evidenceOfLot[id.toString()] = b.certificateNo;
+      return id;
     };
     const bale = await reg(demo.BALE_INPUT);
     const bale2 = await reg(demo.BALE_INPUT_2);
@@ -303,11 +319,43 @@ async function main() {
     log(`  fiber, Gaziantep (grid):            ${yarnCmp.sentence}`);
     log(`  fiber, Kahramanmaraş (own lignite): ${coalCmp.sentence}`);
 
+    // -- snapshot of the chain, so the web app can show and check it without a live node
+    const lotCount = await lastLot();
+    const lotsOnChain: Record<string, unknown> = {};
+    for (let i = 1n; i <= lotCount; i++) {
+      lotsOnChain[i.toString()] = { ...(await read<Record<string, unknown>>("getLot", [i])), parents: await read<bigint[]>("getParents", [i]) };
+    }
+    const events = (await pub.getContractEvents({ address: ledger, abi, fromBlock: deployBlock })).map((e) => ({
+      eventName: (e as { eventName?: string }).eventName,
+      args: (e as { args?: unknown }).args,
+      blockNumber: e.blockNumber,
+      transactionHash: e.transactionHash,
+    }));
+    const [, onChainPqHash] = await read<[boolean, Hex]>("certifiers", [acct.certifier.address]);
+    const yields = await Promise.all(contractYieldTable().map(async (y) => ({ ...y, onChainBps: await read<number>("maxYieldBps", [y.from, y.to]) })));
+
+    // -- the demo documents, read by Claude (recorded responses) and checked against the PDFs
+    const docDir = resolve(ROOT, "data/sample-docs");
+    const documents: Record<string, unknown> = {};
+    for (const f of ["TC-2026-ADN-0042.pdf", "INV-ADN-2026-0881.pdf", "WB-GZT-1182.pdf", "ELEC-GZT-2026-09.pdf", "TC-2026-GZT-0311-INFLATED.pdf"]) {
+      try {
+        documents[f] = await processDocument(resolve(docDir, f), { mode: "recorded" });
+      } catch (e) {
+        log(`  (no recorded reading for ${f}: ${(e as Error).message})`);
+      }
+    }
+    const chipShipmentDocs = ["TC-2026-ADN-0042.pdf", "INV-ADN-2026-0881.pdf", "WB-GZT-1182.pdf"]
+      .map((f) => (documents[f] as { checked: Parameters<typeof crossCheckShipment>[0][number] } | undefined)?.checked)
+      .filter((x) => x !== undefined);
+    const shipmentCrossCheck = crossCheckShipment(chipShipmentDocs);
+
     // -- save the run
     const out = {
       chainId,
       ledger,
+      rpcUrl: url.startsWith("http://127.0.0.1") ? "http://127.0.0.1:8545" : url,
       deployTx: deployHash,
+      deployBlock,
       ranAt: new Date().toISOString(),
       accounts: Object.fromEntries(NAMES.map((n) => [n, acct[n].address])),
       lots: { bale, bale2, flake, chip, flake2, chip2, chipsAtSpinner, chipsAtCoal, coalYarn, yarn, yarnAtMill, fabric, fabricAtMaker, garment, garmentAtBrand },
@@ -324,6 +372,18 @@ async function main() {
       fiberComparison: { honestGrid: yarnCmp, coalPowered: coalCmp, garmentRecycledKg: gToKg(g.recycledG) },
       integrityReports: reports,
       evidence,
+      evidenceOfLot,
+      certifier: { address: acct.certifier.address, pqPublicKey: pq.publicKey, pqPubKeyHashOnChain: onChainPqHash, demoKeys: !process.env.PQ_SEED },
+      chain: { lotCount, lots: lotsOnChain, events, yields },
+      documents,
+      documentsByStep: {
+        chipShipment: chipShipmentDocs.map((d) => d.documentName),
+        yarnEnergy: ["ELEC-GZT-2026-09.pdf"],
+        fraudYarnCertificate: ["TC-2026-GZT-0311-INFLATED.pdf"],
+      },
+      shipmentCrossCheck,
+      steps: demo.STEPS,
+      plants: demo.PLANTS,
       transactions: txs,
     };
     const file = resolve(ROOT, "data", chainId === 31337 ? "demo-run.local.json" : `demo-run.${chainId}.json`);
@@ -331,7 +391,8 @@ async function main() {
     writeFileSync(file, JSON.stringify(out, (_k, v) => (typeof v === "bigint" ? v.toString() : v), 2));
     log(`\nsaved ${txs.length} transactions to ${file.replace(ROOT + "/", "")}`);
   } finally {
-    anvil?.kill();
+    if (anvil && keep) log("\nlocal chain still running at http://127.0.0.1:8545 (Ctrl+C to stop)");
+    else anvil?.kill();
   }
 }
 

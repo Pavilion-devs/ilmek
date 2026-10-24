@@ -9,8 +9,9 @@ IEEE ClimateChain Global Hackathon 2026 · Track: Sustainable Supply Chains (als
 ## What works now
 
 - **`contracts/`**: `FiberLedger.sol`, a mass-balance ledger. Every processing step consumes its inputs and can't output more recycled kilograms than the inputs physically allow, **even with a valid certifier signature**. Each shipment certificate can be used once. The contract carries embedded CO₂e down the chain itself. 22 Foundry tests, including a fuzz test that recycled mass is never created.
-- **`packages/core/`**: yields, carbon maths (Türkiye grid, IPCC gas, Textile Exchange fiber LCA), the integrity engine (plain-language findings), evidence Merkle trees, and the demo supply chain. 21 tests.
-- **`packages/ai/`**: Claude (`claude-opus-5-5`) reads transaction certificates, invoices, weighbridge tickets and electricity bills, returning each field with a quote. Code checks every quote against the PDF's own text and every value against its quote, and checks that a shipment's documents agree with each other. The claim checker sorts a brand's label phrases under EU Directive 2024/825 and rewrites the label; a **number lock** rejects any number the passport doesn't prove and any banned generic term, falling back to a safe template. Live responses are recorded to `packages/ai/recorded/` so the demo replays them without a key. 27 tests.
+- **`packages/core/`**: yields, carbon maths (Türkiye grid, IPCC gas, Textile Exchange fiber LCA), the integrity engine (plain-language findings), evidence Merkle trees, and the demo supply chain. 31 tests, including the verifier and post-quantum signatures.
+- **`packages/ai/`**: Claude (the model in `ANTHROPIC_MODEL`, default `claude-opus-5-5`; the demo was recorded with `claude-sonnet-5`) reads transaction certificates, invoices, weighbridge tickets and electricity bills, returning each field with a quote. Code checks every quote against the PDF's own text and every value against its quote, and checks that a shipment's documents agree with each other. The claim checker sorts a brand's label phrases under EU Directive 2024/825 and rewrites the label; a **number lock** rejects any number the passport doesn't prove and any banned generic term, falling back to a safe template. Live responses are recorded to `packages/ai/recorded/` so the demo replays them without a key. 43 tests.
+- **`apps/web/`**: the web app. A story page, role views (recycler, spinner, certifier, brand), the shopper's passport with a QR code, and a **public verifier** that walks the passport back to the certified bales in the browser, checking mass balance, evidence roots, certificate numbers, the label hash and every **ML-DSA-44** certifier signature. It reads a live node or a saved copy, and has a "try to break it" panel. See [docs/SECURITY.md](docs/SECURITY.md) for the trust model.
 - **`data/sample-docs/`**: five demo PDFs (marked as demo, fictional companies), including the spinner's inflated yarn certificate.
 - **`scripts/`**: `pnpm demo:local` deploys to a local chain and runs the whole story, saving every transaction to `data/`.
 
@@ -22,6 +23,10 @@ Needs Node 20+, pnpm and Foundry.
 pnpm install
 pnpm test          # TypeScript + Solidity tests
 pnpm demo:local    # full story on a throwaway local chain
+pnpm --filter @ilmek/web dev   # web app at http://localhost:5173
+
+# keep the local chain running so the verifier's "live node" mode works
+ILMEK_AI=recorded pnpm demo:local --keep
 
 # record live AI responses (needs an Anthropic API key)
 ANTHROPIC_API_KEY=... pnpm --filter @ilmek/ai record

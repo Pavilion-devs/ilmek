@@ -165,7 +165,7 @@ describe("claim lock", () => {
     expect(lockClaim("Shell fabric: 57% recycled polyester. About 3 kg CO₂e per kg.", facts).ok).toBe(false);
   });
 
-  test.each(["eco-friendly", "Eco-Friendly", "kind to the planet", "sustainable", "carbon neutral"])("banned term '%s' fails", (term) => {
+  test.each(["eco-friendly", "Eco-Friendly", "eco friendly", "kind to the planet", "sustainable", "carbon neutral", "100% planet-positive", "Climate-Positive"])("banned term '%s' fails", (term) => {
     expect(lockClaim(`Shell fabric: 57% recycled polyester, ${term}.`, facts).ok).toBe(false);
   });
 

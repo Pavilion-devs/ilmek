@@ -8,3 +8,4 @@ contracts/cache/
 contracts/broadcast/*/31337/
 .DS_Store
 *.log
+apps/web/public/sample-docs/
