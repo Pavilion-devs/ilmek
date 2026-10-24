@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "demo:local": "cd ../contracts && forge build -q && cd ../scripts && tsx src/run-demo.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "fund": "tsx src/fund.ts",
+    "demo:base": "cd ../contracts && forge build -q && cd ../scripts && tsx src/run-demo.ts --network base-sepolia"
   },
   "dependencies": {
     "@ilmek/core": "workspace:*",

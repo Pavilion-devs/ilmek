@@ -4,7 +4,21 @@
 
 IEEE ClimateChain Global Hackathon 2026 · Track: Sustainable Supply Chains (also touches Carbon Markets & Emissions Transparency)
 
-> Work in progress. See [plan.md](plan.md) for the full plan.
+> See [plan.md](plan.md) for the plan and [docs/SECURITY.md](docs/SECURITY.md) for the trust model.
+
+## Live
+
+| | |
+|---|---|
+| **Site** | https://pavilion-devs.github.io/ilmek/ |
+| **Passport (what a shopper scans)** | https://pavilion-devs.github.io/ilmek/#/passport/15 |
+| **Public verifier** | https://pavilion-devs.github.io/ilmek/#/verify/15 (choose "Live node" to read Base Sepolia directly) |
+| **Contract** | [`0x90db5fde6310022c5f478bbb84e264455e895b1d`](https://sepolia.basescan.org/address/0x90db5fde6310022c5f478bbb84e264455e895b1d) on Base Sepolia · source [verified on Sourcify](https://repo.sourcify.dev/84532/0x90db5fde6310022c5f478bbb84e264455e895b1d) (exact match) |
+| **Over-claim refused** | [`RecycledExceedsInputs`](https://sepolia.basescan.org/tx/0x7adced447492daa64267023072f7f380d48287c6f9d12dfccf083eed6b9c3024): 50 t "recycled" yarn from 30 t recycled chips, reverted even with a certifier signature |
+| **Certificate reuse refused** | [`CertificateAlreadyUsed`](https://sepolia.basescan.org/tx/0xca2555d0cf6f4c3d50fc33ce96567298c39981fa40ae3234fd50d4862bb77022) |
+| **Passport minted** | [lot 15](https://sepolia.basescan.org/tx/0xd891408242c126776b05130eb15ab6388bcc45c34a5ca2aa612ee2adf5e7ee0f): 57.43% recycled |
+
+The certifier's ML-DSA-44 key on this deployment comes from a private random seed (not the public demo seed). Every party is a separate testnet account.
 
 ## What works now
 
@@ -27,6 +41,10 @@ pnpm --filter @ilmek/web dev   # web app at http://localhost:5173
 
 # keep the local chain running so the verifier's "live node" mode works
 ILMEK_AI=recorded pnpm demo:local --keep
+
+# Base Sepolia: keys in .env.base-sepolia (git-ignored), then
+pnpm fund --send                   # split test ETH from the admin account
+ILMEK_AI=recorded pnpm demo:base   # deploy and run the whole story
 
 # record live AI responses (needs an Anthropic API key)
 ANTHROPIC_API_KEY=... pnpm --filter @ilmek/ai record

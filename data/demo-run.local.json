@@ -4,7 +4,7 @@
   "rpcUrl": "http://127.0.0.1:8545",
   "deployTx": "0xf0a1232af69fea677066ef6718e146759de8537403607e0e735e3f53aef4b3e9",
   "deployBlock": "1",
-  "ranAt": "2026-10-24T12:55:37.909Z",
+  "ranAt": "2026-10-24T13:25:40.609Z",
   "accounts": {
     "admin": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "certifier": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",

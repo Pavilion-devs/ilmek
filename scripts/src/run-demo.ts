@@ -18,6 +18,9 @@ import {
   createWalletClient,
   hexToBytes,
   http,
+  nonceManager,
+  parseEventLogs,
+  type TransactionReceipt,
   keccak256,
   toBytes,
   type Abi,
@@ -26,7 +29,7 @@ import {
   type Hex,
 } from "viem";
 import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
-import { foundry } from "viem/chains";
+import { baseSepolia, foundry } from "viem/chains";
 import {
   buildTree,
   certHash,
@@ -36,6 +39,7 @@ import {
   contractYieldTable,
   demo,
   demoPqKeys,
+  getEventsChunked,
   gToKg,
   intensityKgPerKg,
   isoToUnix,
@@ -67,7 +71,7 @@ function loadAccounts(): Record<Name, Account> {
   const out = {} as Record<Name, Account>;
   NAMES.forEach((n, i) => {
     const pk = process.env[`PK_${n.toUpperCase()}`] as Hex | undefined;
-    out[n] = pk ? privateKeyToAccount(pk) : mnemonicToAccount(ANVIL_MNEMONIC, { addressIndex: i });
+    out[n] = pk ? privateKeyToAccount(pk, { nonceManager }) : mnemonicToAccount(ANVIL_MNEMONIC, { addressIndex: i });
   });
   return out;
 }
@@ -89,14 +93,19 @@ async function startAnvil(): Promise<ChildProcess> {
 // ------------------------------------------------------------------ main
 
 async function main() {
+  const network = process.argv.includes("--network") ? process.argv[process.argv.indexOf("--network") + 1] : "local";
+  if (network === "base-sepolia") loadDotEnv(resolve(ROOT, ".env.base-sepolia"));
+  else if (network !== "local") throw new Error(`Unknown network "${network}". Use local or base-sepolia.`);
   loadDotEnv(resolve(ROOT, ".env"));
-  const rpc = process.env.RPC_URL;
+  const rpc = network === "local" ? undefined : process.env.RPC_URL;
   const keep = process.argv.includes("--keep");
   const anvil = rpc ? undefined : await startAnvil();
   const url = rpc ?? "http://127.0.0.1:8545";
   const pub = createPublicClient({ transport: http(url) });
   const chainId = await pub.getChainId();
-  const chain = { ...foundry, id: chainId };
+  const chain = chainId === baseSepolia.id ? baseSepolia : { ...foundry, id: chainId };
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  let lastBlock = 0n;
   const acct = loadAccounts();
   const wallet = (n: Name) => createWalletClient({ account: acct[n], chain, transport: http(url) });
   const log = (s: string) => console.log(s);
@@ -111,31 +120,62 @@ async function main() {
     log(`FiberLedger deployed at ${ledger} (chain ${chainId})`);
 
     const send = async (n: Name, functionName: string, args: unknown[], label: string) => {
-      const { request } = await pub.simulateContract({ address: ledger, abi, functionName, args, account: acct[n] });
+      // A load-balanced public RPC can lag a block behind; retry the simulation briefly.
+      let request: unknown;
+      for (let attempt = 0; ; attempt++) {
+        try {
+          ({ request } = await pub.simulateContract({ address: ledger, abi, functionName, args, account: acct[n] }));
+          break;
+        } catch (e) {
+          if (attempt >= 6) throw e;
+          await sleep(1500);
+        }
+      }
       const hash = await wallet(n).writeContract(request as never);
       const r = await pub.waitForTransactionReceipt({ hash });
       if (r.status !== "success") throw new Error(`${label} reverted`);
+      if (r.blockNumber > lastBlock) lastBlock = r.blockNumber;
       txs.push({ label, hash, status: r.status });
       return r;
     };
-    const read = <T>(functionName: string, args: unknown[] = []) =>
-      pub.readContract({ address: ledger, abi, functionName, args }) as Promise<T>;
-    const lastLot = () => read<bigint>("lotCount");
-
-    /** Sends a call we expect to be refused: records the contract's reason and a mined, reverted tx. */
-    const expectRefusal = async (n: Name, functionName: string, args: unknown[], label: string) => {
-      let errorName = "none";
-      let errorArgs: unknown[] = [];
-      try {
-        await pub.simulateContract({ address: ledger, abi, functionName, args, account: acct[n] });
-      } catch (e) {
-        const rev = e instanceof BaseError ? e.walk((x) => x instanceof ContractFunctionRevertedError) : null;
-        if (rev instanceof ContractFunctionRevertedError) {
-          errorName = rev.data?.errorName ?? "unknown";
-          errorArgs = [...(rev.data?.args ?? [])];
+    /** The lot a transaction created, read from its own logs (not from a possibly stale node). */
+    const lotFrom = (r: TransactionReceipt): bigint => {
+      for (const ev of parseEventLogs({ abi, logs: r.logs }) as { eventName: string; args: Record<string, bigint> }[]) {
+        if (ev.eventName === "InputRegistered" || ev.eventName === "Transformed") return ev.args.lotId!;
+        if (ev.eventName === "Shipped") return ev.args.toLotId!;
+      }
+      throw new Error("no lot event in receipt");
+    };
+    /** Reads at the block of our latest transaction, retrying while a lagging node catches up. */
+    const read = async <T>(functionName: string, args: unknown[] = []): Promise<T> => {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return (await pub.readContract({ address: ledger, abi, functionName, args, ...(lastBlock ? { blockNumber: lastBlock } : {}) })) as T;
+        } catch (e) {
+          if (attempt >= 10) throw e;
+          await sleep(2000);
         }
       }
-      if (errorName === "none") throw new Error(`${label}: expected the contract to refuse, but it accepted`);
+    };
+
+    /** Sends a call we expect to be refused: records the contract's reason and a mined, reverted tx. */
+    const expectRefusal = async (n: Name, functionName: string, args: unknown[], label: string, expected: string) => {
+      let errorName = "none";
+      let errorArgs: unknown[] = [];
+      for (let attempt = 0; attempt < 8 && errorName !== expected; attempt++) {
+        if (attempt) await sleep(1500);
+        errorName = "none";
+        try {
+          await pub.simulateContract({ address: ledger, abi, functionName, args, account: acct[n] });
+        } catch (e) {
+          const rev = e instanceof BaseError ? e.walk((x) => x instanceof ContractFunctionRevertedError) : null;
+          if (rev instanceof ContractFunctionRevertedError) {
+            errorName = rev.data?.errorName ?? "unknown";
+            errorArgs = [...(rev.data?.args ?? [])];
+          }
+        }
+      }
+      if (errorName !== expected) throw new Error(`${label}: expected ${expected}, got ${errorName}`);
       // Mine it anyway (fixed gas, no estimate) so there is a reverted transaction anyone can look up.
       const hash = await wallet(n).writeContract({ address: ledger, abi, functionName, args, gas: 1_500_000n } as never);
       const r = await pub.waitForTransactionReceipt({ hash });
@@ -227,17 +267,17 @@ async function main() {
       const { req, report } = buildStep(s, inputs, grid);
       if (report.verdict === "fail") throw new Error(`${s.id} failed integrity: ${report.findings[0]?.message}`);
       const sig = await approve(owner, req);
-      await send(owner, "transform", [req, sig], s.id);
+      const r = await send(owner, "transform", [req, sig], s.id);
       used.add(s.certificateNo);
-      const id = await lastLot();
+      const id = lotFrom(r);
       evidenceOfLot[id.toString()] = s.id;
       return id;
     };
 
     const ship = async (owner: Name, lot: bigint, kg: number, to: Name, cert: string) => {
-      await send(owner, "ship", [lot, kgToG(kg), acct[to].address, certHash(cert)], `ship ${cert}`);
+      const r = await send(owner, "ship", [lot, kgToG(kg), acct[to].address, certHash(cert)], `ship ${cert}`);
       used.add(cert);
-      return lastLot();
+      return lotFrom(r);
     };
 
     // -- 1. certified bales arrive at the Adana recycler
@@ -245,9 +285,9 @@ async function main() {
       const items = [{ kind: "transaction-certificate", no: b.certificateNo, kg: b.kg, producedAt: b.producedAt }];
       const root = buildTree(items).root;
       evidence[b.certificateNo] = { root, items, pqSig: pqSignRoot(root, pq.secretKey) };
-      await send("certifier", "registerInput", [acct.recycler.address, kgToG(b.kg), BigInt(b.embeddedCo2eG), isoToUnix(b.producedAt), certHash(b.certificateNo), root], `register ${b.certificateNo}`);
+      const r = await send("certifier", "registerInput", [acct.recycler.address, kgToG(b.kg), BigInt(b.embeddedCo2eG), isoToUnix(b.producedAt), certHash(b.certificateNo), root], `register ${b.certificateNo}`);
       used.add(b.certificateNo);
-      const id = await lastLot();
+      const id = lotFrom(r);
       evidenceOfLot[id.toString()] = b.certificateNo;
       return id;
     };
@@ -273,12 +313,13 @@ async function main() {
       "ship",
       [chip, kgToG(sh.chipsReused.kg), acct.coalSpinner.address, certHash(sh.chipsReused.certificateNo)],
       `same certificate ${sh.chipsReused.certificateNo} for a second buyer`,
+      "CertificateAlreadyUsed",
     );
 
     // -- 4. the over-claim: integrity engine fails it, a bribed certifier signs anyway, the contract refuses
     const fraud = buildStep(S.yarnFraud, [chipsAtSpinner]);
     const fraudSig = await approve("spinner", fraud.req);
-    const overclaim = await expectRefusal("spinner", "transform", [fraud.req, fraudSig], "50 t 'recycled' yarn from 30 t recycled chips (certifier signed it)");
+    const overclaim = await expectRefusal("spinner", "transform", [fraud.req, fraudSig], "50 t 'recycled' yarn from 30 t recycled chips (certifier signed it)", "RecycledExceedsInputs");
 
     // -- 5. coal-powered spinner, 100% recycled
     const chipsAtCoal = await ship("recycler", chip2, sh.chipsToCoalSpinner.kg, "coalSpinner", sh.chipsToCoalSpinner.certificateNo);
@@ -320,12 +361,12 @@ async function main() {
     log(`  fiber, Kahramanmaraş (own lignite): ${coalCmp.sentence}`);
 
     // -- snapshot of the chain, so the web app can show and check it without a live node
-    const lotCount = await lastLot();
+    const lotCount = await read<bigint>("lotCount");
     const lotsOnChain: Record<string, unknown> = {};
     for (let i = 1n; i <= lotCount; i++) {
       lotsOnChain[i.toString()] = { ...(await read<Record<string, unknown>>("getLot", [i])), parents: await read<bigint[]>("getParents", [i]) };
     }
-    const events = (await pub.getContractEvents({ address: ledger, abi, fromBlock: deployBlock })).map((e) => ({
+    const events = (await getEventsChunked(pub, ledger, abi, deployBlock, lastBlock || undefined)).map((e) => ({
       eventName: (e as { eventName?: string }).eventName,
       args: (e as { args?: unknown }).args,
       blockNumber: e.blockNumber,
@@ -356,6 +397,7 @@ async function main() {
       rpcUrl: url.startsWith("http://127.0.0.1") ? "http://127.0.0.1:8545" : url,
       deployTx: deployHash,
       deployBlock,
+      lastBlock,
       ranAt: new Date().toISOString(),
       accounts: Object.fromEntries(NAMES.map((n) => [n, acct[n].address])),
       lots: { bale, bale2, flake, chip, flake2, chip2, chipsAtSpinner, chipsAtCoal, coalYarn, yarn, yarnAtMill, fabric, fabricAtMaker, garment, garmentAtBrand },

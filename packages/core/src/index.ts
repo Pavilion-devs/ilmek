@@ -9,3 +9,4 @@ export * from "./pq";
 export * from "./verifier";
 export { default as ledgerAbi } from "./FiberLedger.abi.json";
 export * from "./live";
+export * from "./logs";

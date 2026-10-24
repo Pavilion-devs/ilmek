@@ -27,6 +27,7 @@ export interface Run {
   ledger: `0x${string}`;
   rpcUrl: string;
   deployBlock: string;
+  lastBlock?: string;
   deployTx: string;
   ranAt: string;
   accounts: Record<string, string>;

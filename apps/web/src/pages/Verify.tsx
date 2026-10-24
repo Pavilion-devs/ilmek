@@ -48,7 +48,7 @@ export function Verify({ lotId, embedded = false }: { lotId: string; embedded?: 
       const start = performance.now();
       try {
         const reader =
-          source === "live" ? liveReader(rpc, run.ledger, BigInt(run.deployBlock)) : snapshotReader(snapshotRun(tampers) as never);
+          source === "live" ? liveReader(rpc, run.ledger, BigInt(run.deployBlock), run.lastBlock ? BigInt(run.lastBlock) : undefined, run.chainId) : snapshotReader(snapshotRun(tampers) as never);
         const bundle = { ...buildBundle(tampers), lotId };
         const r = await verifyPassport(reader, bundle);
         if (!cancelled) {
