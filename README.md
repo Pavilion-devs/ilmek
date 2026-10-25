@@ -15,7 +15,7 @@ Track: Sustainable Supply Chains (also touches Carbon Markets & Emissions Transp
 
 ## Live
 
-- 🎥 **Demo video** — _link added with the Devpost submission_
+- 🎥 **Demo video** — https://youtu.be/ve1jRTqOxKY
 - 🌐 **Live demo** — https://ilmek-delta.vercel.app
 - 🏷️ **Garment passport (what a shopper scans)** — https://ilmek-delta.vercel.app/#/passport/15
 - 🔎 **Public verifier, reading Base Sepolia live** — https://ilmek-delta.vercel.app/#/verify/15?src=live
