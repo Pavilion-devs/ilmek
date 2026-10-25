@@ -12,7 +12,8 @@ import { run } from "./run";
 import "./styles.css";
 
 function useHashRoute(): string[] {
-  const parse = () => (window.location.hash.replace(/^#\/?/, "") || "").split("/").filter(Boolean);
+  // "#/verify/15?src=live" -> ["verify", "15"]; the query is read by the page itself.
+  const parse = () => (window.location.hash.replace(/^#\/?/, "").replace(/\?.*$/, "") || "").split("/").filter(Boolean);
   const [route, setRoute] = useState(parse);
   useEffect(() => {
     const on = () => {

@@ -32,9 +32,13 @@ function snapshotRun(tampers: Set<Tamper>) {
 }
 
 export function Verify({ lotId, embedded = false }: { lotId: string; embedded?: boolean }) {
-  const [source, setSource] = useState<"snapshot" | "live">("snapshot");
+  // Optional starting state from the link, e.g. #/verify/15?src=live&tamper=document,label
+  const query = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
+  const [source, setSource] = useState<"snapshot" | "live">(query.get("src") === "live" ? "live" : "snapshot");
   const [rpc, setRpc] = useState(run.rpcUrl);
-  const [tampers, setTampers] = useState<Set<Tamper>>(new Set());
+  const [tampers, setTampers] = useState<Set<Tamper>>(
+    new Set((query.get("tamper") ?? "").split(",").filter((t): t is Tamper => TAMPERS.some((x) => x.key === t))),
+  );
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
